@@ -1,0 +1,161 @@
+import com.interwoven.cssdk.access.CSAuthenticationException;
+import com.interwoven.wcm.lscs.query.AndConstraint;
+import com.interwoven.wcm.lscs.query.Constraint;
+import com.interwoven.wcm.lscs.query.FieldConstraint;
+import com.interwoven.wcm.lscs.query.Operator;
+import com.interwoven.wcm.lscs.query.Query;
+import com.interwoven.wcm.lscs.query.SortField;
+import com.interwoven.cssdk.common.CSClient;
+import com.interwoven.cssdk.common.CSException;
+import com.interwoven.cssdk.common.CSRemoteException;
+import com.interwoven.wcm.lscs.Client;
+import com.interwoven.wcm.lscs.LSCSException;
+import com.interwoven.wcm.lscs.LSCSIterator;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Properties;
+
+import org.dom4j.Document;
+import org.dom4j.DocumentHelper;
+import org.dom4j.Element;
+
+public class GetPagesFromClient {
+	public static final String LiveSite_Page ="TeamSite/LiveSite/Type";
+	public static final String LiveSite_Page_state="TeamSite/LiveSite/Private";
+	public static final String REGEX_EDITION_REMOVER="/[EDITION]+/?.*";
+	public static final String WORKAREA = "/WORKAREA/shared/";
+	public static void main(String[] args) {
+		
+	    
+	        Properties prop = new Properties();
+	        try {
+	        	
+				prop.load(new FileInputStream(
+				        new File("/opentext/TeamSite/local/bin/custom/URLContentCleanUp/config.properties")));
+				CSClient client = Connection.getTeamSiteCSClient(prop);
+				System.out.println("CSCLient is >>."+client.isValid());
+				String contextPath = "//dce-ts16-q.tal.deere.com/default/main/deere/ar/es/WORKAREA/shared";
+				Client lscsClient = Connection.getLSCSClient(client, contextPath);
+				System.out.println("LSCS Client is>>>>>"+lscsClient.getProject());
+				 long start = System.currentTimeMillis();
+				Document doc = GetPagesFromClient.getPageslscsClient(lscsClient,LiveSite_Page);
+				 long end = System.currentTimeMillis();
+				System.out.println(">>>>>>>DOcument is "+doc.asXML());
+				float sec = (end - start) / 1000F; 
+				 System.out.println("seconds taken  is>>>>>>>>>>>>>>>>>>>>>>>>>>"+sec);
+	        
+				
+			} catch (CSException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+	        catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			} 
+	        
+	       
+	    
+		
+		
+	}
+	private static Document getPageslscsClient(Client lscsClient, String livesitePage) {
+		// TODO Auto-generated method stub
+		
+		List<Constraint> Constraints = new ArrayList();
+		Constraint pageType = new FieldConstraint(LiveSite_Page, Operator.EQUALS, "page");
+		Constraints.add(pageType);
+		
+		//Constraint pagePrivateConstraint = new FieldConstraint(LiveSite_Page_state,Operator.EQUALS,"false");
+		//Constraints.add(pagePrivateConstraint);
+		//Constraint andConstraint =new AndConstraint((Constraint[]) Constraints.toArray(new Constraint[0]));
+		SortField[] sortFields = new SortField[1];
+		boolean ascending = true;
+
+		sortFields[0] = new SortField("LastModifiedDate", ascending);
+		Query query = new Query(pageType,sortFields);
+
+		
+		return executeLSCSQuery(lscsClient,query);
+	}
+	private static Document executeLSCSQuery(Client lscsClient, Query query) {
+		int start = 0, max = 8000;
+
+
+		Element xmlElement = DocumentHelper.createElement("assets");
+		xmlElement.addAttribute("query", query.toString());
+		xmlElement.addAttribute("start", "0");
+		xmlElement.addAttribute("max", "9000");
+		xmlElement.addAttribute("includeContent",String.valueOf(false));
+
+		org.dom4j.Document xmlDocument = DocumentHelper.createDocument(xmlElement);
+
+		try {
+			LSCSIterator<com.interwoven.wcm.lscs.Document> documents = lscsClient.getDocuments(query.toString(), 0, 9000);
+			 System.out.println("Passed here is>>>>>>>>>>>>>>>>>>>>>>>>>>"+documents.getTotalSize());
+			
+			
+			 int count = 0;
+			 com.interwoven.wcm.lscs.Document doc = null;
+			 while (documents.hasNext()) {
+			 
+				 doc = documents.next();
+			
+				 System.out.println("executeLSCSQuery::Passed here is>>>>>>>>>>>>>>>>>>>>>>>>>>"+count+"->"+doc.getPath());
+			 
+			xmlElement.add(lscsDocumentToXml(doc, false).getRootElement());
+				 //xmlElement.addAttribute("path", doc.getPath());
+			 count++;
+			 
+			 
+			 
+			 }
+			 
+			/*
+			 * int i=0 ; while( i< 1445) {
+			 * xmlElement.add(lscsDocumentToXml(documents.next(), false).getRootElement());
+			 * i++;
+			 * 
+			 * }
+			 */
+		}catch (LSCSException e) {
+				
+			} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return xmlDocument;
+		}
+
+		
+	
+	protected static org.dom4j.Document lscsDocumentToXml(com.interwoven.wcm.lscs.Document lscsDocument,
+			boolean includeContent) throws LSCSException, IOException {
+		Element xmlElementdoc = DocumentHelper.createElement("document");
+		org.dom4j.Document xmlDocumentdoc = DocumentHelper.createDocument(xmlElementdoc);
+		 System.out.println("lscsDocumentToXml::Passed here is>>>>>>>>>>>>>>>>>>>>>>>>>>"+lscsDocument.getPath());
+		//xmlElement.addAttribute("id", lscsDocument.getId());
+		 xmlElementdoc.addAttribute("path", lscsDocument.getPath());
+		//xmlElement.addAttribute("uri", lscsDocument.getContentURL());
+
+/*		Element metadata = xmlElement.addElement("metadata");
+		String metadataNames[] = lscsDocument.getAttributeNames();
+		for (int i = 0; i < metadataNames.length; i++) {
+			metadata.addElement("field").addAttribute("name", metadataNames[i])
+					.addText(lscsDocument.getAttribute(metadataNames[i]));
+		}*/
+
+
+
+
+		return xmlDocumentdoc;
+	}
+}
+
