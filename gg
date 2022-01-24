@@ -1,0 +1,13 @@
+  public static CSClient getTeamSiteCSClient(Properties prop) throws CSAuthenticationException, CSRemoteException, CSException, IOException {
+        String TSServerDomain = prop.getProperty("TeamsiteServer");
+        String PROP_CSFACTORY = "com.interwoven.cssdk.factory.CSFactory";
+        String PROP_CSFACRORY_IMPL = "com.interwoven.cssdk.factory.CSJavaFactory";
+        Properties properties1 = new Properties(System.getProperties());
+        properties1.setProperty("defaultTSServer", TSServerDomain);
+        properties1.setProperty("ts.server.os", "linux");
+        System.out.println("Getting CSClient instance");
+        if (properties1.getProperty(PROP_CSFACTORY) == null)
+            properties1.setProperty(PROP_CSFACTORY, PROP_CSFACRORY_IMPL);
+        CSFactory factory = CSFactory.getFactory(properties1);
+        return factory.getClientForCurrentUser(Locale.getDefault(), "teamsite", null);
+    }
