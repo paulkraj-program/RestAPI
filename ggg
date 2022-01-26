@@ -1,0 +1,82 @@
+import com.interwoven.cssdk.access.CSAuthenticationException;
+import com.interwoven.wcm.lscs.Client;
+
+import com.interwoven.wcm.lscs.Factory;
+
+import com.interwoven.wcm.lscs.LSCSException;
+import com.interwoven.cssdk.common.CSClient;
+import com.interwoven.cssdk.common.CSException;
+import com.interwoven.cssdk.common.CSRemoteException;
+import com.interwoven.cssdk.factory.CSFactory;
+import java.io.IOException;
+import java.util.Locale;
+import java.util.Properties;
+
+public class Connection {
+	public static final String TRANSPORT_TYPE="lscs.transport";
+
+	public static final String LSCS_HOST="lscs.host";
+
+	public static final String LSCS_PORT="lscs.port";
+
+	public static final String LSCS_CONTEXT_PATH="lscs.context.path";
+
+	public static final String LSCS_VERSION="lscs.version";
+
+	public static final String LSCS_MAX_RESULT_TO_FETCH="lscs.max.results.to.fetch";
+
+	public static final String LSCS_MAX_CONN_HOST="http.max.connections.host";
+
+	public static final String LSCS_MAX_TOTAL_CONN="http.max.connections.total";
+    public static CSClient getTeamSiteCSClient(Properties prop) throws CSAuthenticationException, CSRemoteException, CSException, IOException {
+        String TSServerDomain = prop.getProperty("TeamsiteServer");
+        String PROP_CSFACTORY = "com.interwoven.cssdk.factory.CSFactory";
+        String PROP_CSFACRORY_IMPL = "com.interwoven.cssdk.factory.CSJavaFactory";
+        Properties properties1 = new Properties(System.getProperties());
+        properties1.setProperty("defaultTSServer", TSServerDomain);
+        properties1.setProperty("ts.server.os", "linux");
+        System.out.println("Getting CSClient instance");
+        if (properties1.getProperty(PROP_CSFACTORY) == null)
+            properties1.setProperty(PROP_CSFACTORY, PROP_CSFACRORY_IMPL);
+        CSFactory factory = CSFactory.getFactory(properties1);
+        return factory.getClientForCurrentUser(Locale.getDefault(), "teamsite", null);
+    }
+    public static Client getLSCSClient(CSClient csClient,String contextPath) {
+    	Properties properties = new Properties();
+
+        properties.put(TRANSPORT_TYPE,"http");
+
+        properties.put(LSCS_HOST,"dce-ts16-q.tal.deere.com");
+
+        properties.put(LSCS_PORT,"8080");
+
+        properties.put(LSCS_VERSION,"v1");
+
+        properties.put(LSCS_CONTEXT_PATH,"lscs");
+
+        
+
+        properties.put(LSCS_MAX_CONN_HOST,"20");
+
+        properties.put(LSCS_MAX_TOTAL_CONN,"20");
+        
+        Factory lscsFactory = new Factory();
+        Client lscsClient = lscsFactory.getClient(properties);
+        System.out.println("lscsClient >>>>>>>"+lscsClient.toString());
+		
+		 try { 
+			 lscsClient.setContextString(contextPath);
+		 
+		 } catch (LSCSException e) {
+		 
+		 e.printStackTrace(); }
+		 lscsClient.setSessionString(csClient.getContext().getSessionString());
+		 
+
+        
+
+        return lscsClient;
+		
+    
+    }
+}
